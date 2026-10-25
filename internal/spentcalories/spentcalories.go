@@ -3,6 +3,7 @@ package spentcalories
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -22,17 +23,19 @@ func parseTraining(data string) (int, string, time.Duration, error) {
 		_, err := time.ParseDuration("in parseTraining")
 		return 0, "", 0, err
 	}
-	steps := 0
-	for _, char := range parts[0] {
-		if char < '0' || char > '9' {
-			_, err := time.ParseDuration("in parseTraining")
-			return 0, "", 0, err
-		}
-		steps = steps*10 + int(char-'0')
+	steps, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, "", 0, err
+	}
+	if steps <= 0 {
+		return 0, "", 0, fmt.Errorf("steps must be > 0")
 	}
 	duration, err := time.ParseDuration(parts[2])
 	if err != nil {
 		return 0, "", 0, err
+	}
+	if duration <= 0 {
+		return 0, "", 0, fmt.Errorf("time must be > 0")
 	}
 	return steps, parts[1], duration, nil
 }
@@ -71,15 +74,17 @@ func TrainingInfo(data string, weight, height float64) (string, error) {
 			return "", err
 		}
 	case "Ходьба":
-		calories = weight * speed * duration.Minutes() / minInH
+		calories, err = WalkingSpentCalories(steps, weight, height, duration)
+		if err != nil {
+			return "", err
+		}
 	default:
 		err = fmt.Errorf("неизвестный тип тренировки")
 		log.Println(err)
 		return "", err
 	}
-
 	return fmt.Sprintf(
-		"Тип тренировки: %s\nДлительность: %.2f ч.\nДистанция: %.2f км.\nСкорость: %.2f км/ч\nСожгли калорий: %.2f",
+		"Тип тренировки: %s\nДлительность: %.2f ч.\nДистанция: %.2f км.\nСкорость: %.2f км/ч\nСожгли калорий: %.2f\n",
 		activity, duration.Hours(), dist, speed, calories), nil
 }
 
